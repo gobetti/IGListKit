@@ -15,14 +15,28 @@
 import IGListKit
 import UIKit
 
-final class MonthSectionController: ListBindingSectionController<ListDiffable>, ListBindingSectionControllerDataSource, ListBindingSectionControllerSelectionDelegate {
+final class MonthSectionController: ListBindingSectionController<ListDiffable>, ListBindingSectionControllerDataSource {
 
     private var selectedDay: Int = -1
+    private var timer: Timer!
 
     override init() {
         super.init()
         dataSource = self
-        selectionDelegate = self
+        
+        if #available(iOS 10.0, *) {
+            timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+                guard let strongSelf = self else { return }
+                strongSelf.selectedDay = (strongSelf.selectedDay + 1) % 31
+                strongSelf.update(animated: true)
+            }
+        } else {
+            fatalError("not testing iOS 9")
+        }
+    }
+    
+    deinit {
+        timer.invalidate()
     }
 
     // MARK: ListBindingSectionControllerDataSource
@@ -37,7 +51,7 @@ final class MonthSectionController: ListBindingSectionController<ListDiffable>, 
 
         viewModels.append(MonthTitleViewModel(name: month.name))
 
-        for day in 1..<(month.days + 1) {
+        for day in 1..<Int(arc4random_uniform(UInt32(month.days)) + 2) {
             let viewModel = DayViewModel(
                 day: day,
                 today: day == today,
@@ -83,17 +97,4 @@ final class MonthSectionController: ListBindingSectionController<ListDiffable>, 
             return CGSize(width: width, height: 55.0)
         }
     }
-
-    // MARK: ListBindingSectionControllerSelectionDelegate
-
-    func sectionController(_ sectionController: ListBindingSectionController<ListDiffable>, didSelectItemAt index: Int, viewModel: Any) {
-        guard let dayViewModel = viewModel as? DayViewModel else { return }
-        if dayViewModel.day == selectedDay {
-            selectedDay = -1
-        } else {
-            selectedDay = dayViewModel.day
-        }
-        update(animated: true)
-    }
-
 }
